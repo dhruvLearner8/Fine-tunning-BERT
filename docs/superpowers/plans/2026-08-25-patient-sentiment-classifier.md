@@ -1016,7 +1016,7 @@ def run_training(model, tokenizer, train_dataset, val_dataset, training_args: Tr
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         compute_metrics=compute_metrics,
     )
     trainer.train()
@@ -1067,7 +1067,13 @@ def main():
 
     model = models.load_base_model()
     args = build_training_args(config.MODELS_DIR / "zero_shot", epochs=0)
-    trainer = Trainer(model=model, args=args, tokenizer=tokenizer, compute_metrics=evaluate.compute_metrics)
+    trainer = Trainer(
+        model=model,
+        args=args,
+        eval_dataset=test_dataset,
+        processing_class=tokenizer,
+        compute_metrics=evaluate.compute_metrics,
+    )
 
     start = time.time()
     predictions = trainer.predict(test_dataset)
