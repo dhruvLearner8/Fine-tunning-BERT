@@ -23,10 +23,12 @@ def _latest_run(client, experiment_id, run_name):
         experiment_id,
         filter_string=f"tags.mlflow.runName = '{run_name}'",
         order_by=["start_time DESC"],
-        max_results=1,
+        max_results=5,
     )
     if not runs:
         raise RuntimeError(f"No MLflow run found named '{run_name}'. Run the corresponding experiment script first.")
+    if len(runs) > 1:
+        print(f"WARNING: found {len(runs)} runs named '{run_name}', using the most recent (started {runs[0].info.start_time})")
     return runs[0]
 
 
@@ -64,7 +66,7 @@ def main():
     src_dir = MODEL_DIRS[best_run_name]
     if config.FINAL_MODEL_DIR.exists():
         shutil.rmtree(config.FINAL_MODEL_DIR)
-    shutil.copytree(src_dir, config.FINAL_MODEL_DIR)
+    shutil.copytree(src_dir, config.FINAL_MODEL_DIR, ignore=shutil.ignore_patterns("checkpoint-*"))
     print(f"Saved best model to {config.FINAL_MODEL_DIR}")
 
 
