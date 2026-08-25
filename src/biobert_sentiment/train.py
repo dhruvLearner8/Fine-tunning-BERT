@@ -34,7 +34,7 @@ def run_training(model, tokenizer, train_dataset, val_dataset, training_args: Tr
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         compute_metrics=compute_metrics,
     )
     trainer.train()
