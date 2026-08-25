@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 
+import mlflow
 import torch
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -10,6 +11,13 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 MODELS_DIR = REPO_ROOT / "models"
 FINAL_MODEL_DIR = REPO_ROOT / "patient-sentiment-final"
 MLRUNS_DIR = REPO_ROOT / "mlruns"
+
+# MLflow 3.x's default tracking URI is derived from the current working
+# directory and mishandles paths containing spaces (e.g. "Projects 1"),
+# landing the tracking DB as a sibling of the repo instead of inside it.
+# Pin it explicitly so every script that touches MLflow is consistent.
+os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+mlflow.set_tracking_uri(MLRUNS_DIR.as_uri())
 
 BIOBERT_MODEL_NAME = "dmis-lab/biobert-base-cased-v1.2"
 MAX_LENGTH = 256

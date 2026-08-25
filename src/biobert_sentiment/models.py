@@ -1,11 +1,12 @@
 """BioBERT model loading for full fine-tuning and LoRA fine-tuning."""
 from peft import LoraConfig, TaskType, get_peft_model
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForSequenceClassification, set_seed
 
 from biobert_sentiment import config
 
 
 def load_base_model():
+    set_seed(42)
     return AutoModelForSequenceClassification.from_pretrained(
         config.BIOBERT_MODEL_NAME,
         num_labels=config.NUM_LABELS,

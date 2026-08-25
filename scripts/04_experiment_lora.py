@@ -49,9 +49,10 @@ def main():
         metrics={**metrics, "trainable_params": trainable, "train_time_seconds": elapsed},
     )
 
-    trainer.save_model(str(output_dir))
+    merged_model = model.merge_and_unload()
+    merged_model.save_pretrained(str(output_dir))
     tokenizer.save_pretrained(str(output_dir))
-    print(f"\nSaved LoRA adapter to {output_dir}")
+    print(f"\nSaved merged LoRA model to {output_dir}")
     print(f"F1: {metrics['f1']:.3f}  Precision: {metrics['precision']:.3f}  Recall: {metrics['recall']:.3f}")
 
 

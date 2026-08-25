@@ -4,6 +4,8 @@ __pycache__/
 venv/
 *.egg-info/
 mlruns/
+mlflow.db
+mlartifacts/
 models/*
 !models/.gitkeep
 patient-sentiment-final/

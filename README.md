@@ -30,34 +30,42 @@ giving 480/60/60 train/val/test examples.
 
 | Model | F1 | Precision | Recall | Params Trained | Time |
 |---|---|---|---|---|---|
-| Base BioBERT (zero-shot) | 0.305 | 0.391 | 0.347 | 0 (0%) | 0s |
-| Full Fine-tuning | 0.424 | 0.477 | 0.428 | 108,312,579 (100%) | 106s |
-| LoRA Fine-tuning | 0.267 | 0.222 | 0.333 | 297,219 (0.27%) | 73s |
+| Base BioBERT (zero-shot) | 0.051 | 0.028 | 0.333 | 0 (0%) | 1.0s |
+| Full Fine-tuning | 0.267 | 0.222 | 0.333 | 108,312,579 (100%) | 105.5s |
+| LoRA Fine-tuning | 0.249 | 0.263 | 0.417 | 297,219 (0.27%) | 73.5s |
 
 Best model selected: **Full Fine-tuning** (highest F1), saved to
 [`patient-sentiment-final/`](patient-sentiment-final/).
 
-**Key finding:** on this local run, LoRA (0.267 F1) underperformed full
-fine-tuning (0.424 F1). Take that gap with a large grain of salt, though —
-it is almost certainly an artifact of the tiny local subset, **not**
-representative of how LoRA compares to full fine-tuning in general. The
-subset has only 480 training examples, of which just 43 are NEUTRAL; with
-that little data and that much class imbalance, LoRA's much smaller
-parameter budget (0.27% of the model) simply doesn't get enough gradient
-signal to find a good low-rank update, while full fine-tuning's much larger
-capacity can still (barely) fit the pattern. This is the opposite of what
-the standard LoRA literature reports at realistic dataset scale, where LoRA
-is expected to be competitive with full fine-tuning (often within a few
-points of F1) while training a tiny fraction of the parameters and in a
-fraction of the time.
+**Key finding:** on this local run, LoRA (0.249 F1) underperformed full
+fine-tuning (0.267 F1) — but only barely this time (a 0.018 F1 gap, versus a
+much larger gap observed on a previous run before deterministic seeding was
+added). Take either gap with a large grain of salt: it is almost certainly
+an artifact of the tiny local subset, **not** representative of how LoRA
+compares to full fine-tuning in general. The subset has only 480 training
+examples, of which just 43 are NEUTRAL; with that little data and that much
+class imbalance, LoRA's much smaller parameter budget (0.27% of the model)
+gets little gradient signal to find a good low-rank update, while full
+fine-tuning's much larger capacity can (barely) fit the pattern instead.
+That the two approaches landed close together on this run and far apart on
+a prior run of the *same code* — the only difference being which random
+classification-head initialization got used — is itself the clearest
+demonstration that these local-subset numbers are noise-dominated and
+shouldn't be read as a generalizable "LoRA vs. full fine-tuning" finding.
+This is also why a random seed is now pinned (`set_seed(42)` in
+`models.load_base_model()`): the same code and data now reproduce the same
+result on every run, whereas previously two zero-shot runs alone had swung
+from F1=0.051 to F1=0.305 purely from unseeded head initialization.
 
-Both experiments also show the **NEUTRAL class collapsing to 0 recall** on
-this run. With only 43 NEUTRAL examples in the 480-example training set
-(~9% of the data), neither model sees enough NEUTRAL examples to learn the
-class, and both end up predicting NEGATIVE/POSITIVE for every NEUTRAL test
-example. This is a known limitation of the local subset and is expected to
-resolve once trained on the full dataset, where NEUTRAL has ~14,000+
-examples to learn from.
+Both fine-tuned experiments also show heavy collapse toward the majority
+**POSITIVE** class on this run (POSITIVE recall 1.00, NEGATIVE/NEUTRAL
+recall 0.00 for full fine-tuning), and the zero-shot baseline collapsed the
+opposite way, predicting NEUTRAL for nearly everything. With only 43
+NEUTRAL examples in the 480-example training set (~9% of the data) and a
+POSITIVE-skewed base rate (66%), neither model sees enough signal to learn
+a real decision boundary — it's a known limitation of the local subset and
+is expected to resolve once trained on the full dataset, where NEUTRAL has
+~14,000+ examples to learn from.
 
 **These numbers are from a local ~600-example subset (`SUBSET_SIZE=600`) run
 on CPU/MPS to verify the pipeline end-to-end — they are a pipeline sanity
@@ -66,7 +74,7 @@ gap above as a claim like "LoRA achieves X% of full fine-tuning quality" —
 at this scale the comparison is dominated by data starvation, not by any
 property of LoRA itself. For the real comparison numbers, re-run
 `scripts/01_explore_data.py` through `scripts/05_compare_experiments.py` on
-Colab with `SUBSET_SIZE=none` against the full ~172k-example dataset (see
+Colab with `SUBSET_SIZE=none` against the full 161,297-example dataset (see
 `notebooks/colab_full_run.ipynb`; a T4 GPU is recommended).
 
 ## Why BioBERT, not generic BERT
@@ -106,13 +114,21 @@ print(result)  # {"label": "POSITIVE", "confidences": {...}}
 ```
 
 On the 5 hand-written custom examples run through the saved model
-(`scripts/06_custom_examples.py`), 4 out of 5 predictions matched the
-intuitively-expected label. The one miss was `"It works okay I guess, some
-days better than others, nothing remarkable"` (expected NEUTRAL), which was
-predicted POSITIVE with confidences NEGATIVE 0.150 / NEUTRAL 0.103 /
-POSITIVE 0.747 — consistent with the NEUTRAL-class weakness noted above:
-a model trained on only 43 NEUTRAL examples doesn't yet have a strong
-NEUTRAL signal to fall back on for genuinely lukewarm language.
+(`scripts/06_custom_examples.py`), only 2 out of 5 predictions matched the
+intuitively-expected label this run — the model predicted POSITIVE for all
+5 examples, including two that were clearly NEGATIVE (`"Terrible side
+effects, nausea every single day..."` and `"...it made everything worse,
+would not recommend"`) and one that was NEUTRAL (`"It works okay I guess,
+some days better than others, nothing remarkable"`). This is a direct
+consequence of the POSITIVE-class collapse described above: with this run's
+random seed, the saved full-fine-tuning model learned to predict the
+majority class (POSITIVE, 66% of the data) almost everywhere rather than a
+real decision boundary between the three classes. It underscores the same
+point as the LoRA-vs-full-finetuning comparison — these are pipeline
+sanity-check numbers from a 480-example subset, not a claim about the
+model's real-world quality, which is why the Colab full-dataset run
+(`notebooks/colab_full_run.ipynb`) is the one to trust for actual
+benchmarking.
 
 ## Setup
 
