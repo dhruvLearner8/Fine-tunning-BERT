@@ -1,7 +1,12 @@
 """Thin wrapper around MLflow run logging for experiment tracking."""
+import os
+
 import mlflow
 
 from biobert_sentiment import config
+
+# MLflow 3.x requires explicit opt-in for filesystem tracking backend
+os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
 
 def log_run(

@@ -5,7 +5,6 @@ from biobert_sentiment import mlflow_utils
 
 def test_log_run_records_params_and_metrics(tmp_path, monkeypatch):
     monkeypatch.setenv("MLFLOW_TRACKING_URI", f"file://{tmp_path}")
-    monkeypatch.setenv("MLFLOW_ALLOW_FILE_STORE", "true")
     mlflow.set_tracking_uri(f"file://{tmp_path}")
 
     mlflow_utils.log_run(
