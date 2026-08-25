@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+mlruns/
+models/*
+!models/.gitkeep
+patient-sentiment-final/
+data/processed/*
+!data/processed/.gitkeep
+.pytest_cache/
+.DS_Store
